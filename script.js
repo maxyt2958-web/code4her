@@ -203,16 +203,79 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(update);
   }
 
-
-  // ===== SOS BUTTON =====
-  const sosBtn = document.getElementById('sosBtn');n
+  // ===== SOS BUTTON (TELEGRAM INTEGRATION) =====
+  const sosBtn = document.getElementById('sosBtn');
   if (sosBtn) {
-    sosBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      window.location.href = 'dialer.html?sos=1';
+    sosBtn.addEventListener('click', () => {
+      const originalHTML = sosBtn.innerHTML;
+      sosBtn.innerHTML = '<i data-lucide="loader"></i> Locating...';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      
+      const sendWebhook = (locationData) => {
+        sosBtn.innerHTML = '<i data-lucide="loader"></i> Sending...';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        
+        const botToken = '8724759053:AAE9E_HvRBmqAs7S5AyMtLkwuOoO5dA5S04';
+        const chatId = '5999899762';
+        let messageText = '🚨 I am in danger!\n\n';
+        
+        if (locationData.maps_url) {
+          messageText += `Location: ${locationData.maps_url}`;
+        } else if (locationData.error) {
+          messageText += `Location unavailable: ${locationData.error}`;
+        }
+
+        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: messageText,
+            disable_web_page_preview: false
+          })
+        })
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          sosBtn.innerHTML = '<i data-lucide="check"></i> Sent!';
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          setTimeout(() => {
+            sosBtn.innerHTML = originalHTML;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          }, 3000);
+        })
+        .catch(err => {
+          console.error('Webhook Error:', err);
+          sosBtn.innerHTML = '<i data-lucide="x"></i> Failed';
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          setTimeout(() => {
+            sosBtn.innerHTML = originalHTML;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          }, 3000);
+        });
+      };
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const locationData = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+              maps_url: `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`
+            };
+            sendWebhook(locationData);
+          },
+          (error) => {
+            console.error("Location error:", error);
+            sendWebhook({ error: error.message, status: "Location access denied or unavailable" });
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      } else {
+        sendWebhook({ error: "Geolocation not supported by this browser" });
+      }
     });
   }
-
 
   // ===== MAP TOGGLE BUTTONS =====
   const mapBtns = document.querySelectorAll('.map-toggle button');

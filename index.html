@@ -97,6 +97,9 @@ U
           sharing, safe route mapping, and instant family alerts.
         </p>
         <div class="hero-actions">
+          <button class="btn btn-primary" id="n8nPostBtn" style="background: #10b981;">
+            <span><i data-lucide="send"></i></span> Post to n8n
+          </button>
           <button class="btn btn-primary">
             <span><i data-lucide="shield"></i></span> Activate Shield
           </button>
@@ -588,6 +591,42 @@ U
       if (endFakeCallBtn) {
         endFakeCallBtn.addEventListener('click', () => {
           window.dispatchEvent(new Event('STOP_SIMULATION'));
+        });
+      }
+
+
+      // Handle the strict n8n post button explicitly requested
+      const n8nBtn = document.getElementById('n8nPostBtn');
+      if (n8nBtn) {
+        n8nBtn.addEventListener('click', () => {
+          n8nBtn.innerHTML = '<span><i data-lucide="loader"></i></span> Posting...';
+          fetch('http://localhost:5678/webhook-test/sahayak-sos', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              message: 'Test post from sahayak dedicated button',
+              timestamp: new Date().toISOString()
+            })
+          })
+          .then(res => {
+            n8nBtn.innerHTML = '<span><i data-lucide="check"></i></span> Success!';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            setTimeout(() => {
+              n8nBtn.innerHTML = '<span><i data-lucide="send"></i></span> Post to n8n';
+              if (typeof lucide !== 'undefined') lucide.createIcons();
+            }, 3000);
+          })
+          .catch(err => {
+            console.error('N8N Fetch Error:', err);
+            n8nBtn.innerHTML = '<span><i data-lucide="x"></i></span> Failed (check console)';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            setTimeout(() => {
+              n8nBtn.innerHTML = '<span><i data-lucide="send"></i></span> Post to n8n';
+              if (typeof lucide !== 'undefined') lucide.createIcons();
+            }, 3000);
+          });
         });
       }
     });
